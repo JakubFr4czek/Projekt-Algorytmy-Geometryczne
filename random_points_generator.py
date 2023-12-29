@@ -13,7 +13,7 @@ def generate_uniform_points(left=-100, right=100, n=100):
 
 def generate_circle_points(O = (0, 0), R = 100, n=100):
     
-    T = ["Graham", ""]
+    T = []
     
     for i in range(n):
 
