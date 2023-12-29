@@ -81,13 +81,15 @@ def mbr(hull_points, CalculationType = "area"):
     for i in range(len(minX)):
 
         if CalculationType == "area":
-            area = (minX[i] - maxX[i]) * (minY[i] - maxY[i])
+            area = abs(minX[i] - maxX[i]) * abs(minY[i] - maxY[i])
         elif CalculationType == "perimiter":
-            area = 2 * (minX[i] - maxX[i]) + (minY[i] - maxY[i])
+            area = 2 * abs(minX[i] - maxX[i]) + abs(minY[i] - maxY[i])
 
         if area < minArea:
             minArea = area
             minAreaIdx = i
+
+    print(CalculationType, ": ", minArea)
 
     pts = [(minX[minAreaIdx],minY[minAreaIdx]),
            (maxX[minAreaIdx], minY[minAreaIdx]),
