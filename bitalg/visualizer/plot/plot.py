@@ -56,6 +56,11 @@ class Plot:
         fig.show(warn=False)
 
     @staticmethod
+    def get_fig(plot_data, data):
+        fig, _ = Plot.__build_plot(plot_data, data)
+        return fig
+
+    @staticmethod
     def save(plot_data, data, filename):
         fig, _ = Plot.__build_plot(plot_data, data)
         fig.savefig(filename)
