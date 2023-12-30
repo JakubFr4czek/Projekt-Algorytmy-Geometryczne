@@ -2,6 +2,7 @@
 import customtkinter as ctk
 import matplotlib.pyplot as plt
 import copy
+import time
 from matplotlib.figure import Figure 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk) 
 
@@ -16,7 +17,8 @@ from bitalg.visualizer.main import Visualizer
 
 #Zmienna przechowująca punkty na wykresie
 points = []
-vis = None
+vis_img = None
+vis_gif = None
 display_type = "png"
 current_job = None
 gif_interval = 100
@@ -33,18 +35,15 @@ def show_points():
     canvas.draw() 
     canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
 
-def show_wezlz(circle):
+def wezlz_vis_img(circle):
 
     vis = Visualizer()
     vis.add_point(points)
     vis.add_circle((circle.S[0], circle.S[1], circle.r), color='green')
     
-    fig = vis.get_fig()
-    canvas = FigureCanvasTkAgg(fig, master = right_frame)   
-    canvas.draw() 
-    canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER) 
+    return vis 
 
-def show_graham(hull_points):
+def graham_vis_img(hull_points):
 
     vis = Visualizer()
     vis.add_point(points)
@@ -52,12 +51,9 @@ def show_graham(hull_points):
         vis.add_line_segment( (hull_points[i - 1], hull_points[i]) )
     vis.add_line_segment( (hull_points[-1], hull_points[0]) )
 
-    fig = vis.get_fig()
-    canvas = FigureCanvasTkAgg(fig, master = right_frame)   
-    canvas.draw() 
-    canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER) 
+    return vis
 
-def show_mbr(mbr_points):
+def mbr_vis_img(mbr_points):
 
     vis = Visualizer()
     vis.add_point(points)
@@ -69,12 +65,9 @@ def show_mbr(mbr_points):
 
     vis.add_line_segment(ptsSegments,  color = 'red')
 
-    fig = vis.get_fig()
-    canvas = FigureCanvasTkAgg(fig, master = right_frame)   
-    canvas.draw() 
-    canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER) 
+    return vis
 
-def show_combo(circle, hull_points, mbr_area_points, mbr_perimeter_points):
+def combo_vis_img(circle, hull_points, mbr_area_points, mbr_perimeter_points):
 
     vis = Visualizer()
     vis.add_point(points)
@@ -99,19 +92,13 @@ def show_combo(circle, hull_points, mbr_area_points, mbr_perimeter_points):
 
     vis.add_line_segment(ptsSegmentsPerimiter,  color = 'black')
 
-    fig = vis.get_fig()
-    canvas = FigureCanvasTkAgg(fig, master = right_frame)   
-    canvas.draw() 
-    canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER) 
+    return vis
 
 
 from PIL import Image
 def show_image():
 
-    global vis, current_job
-
-    if vis == None:
-        return
+    global current_job
     
     if current_job != None:
         window.after_cancel(current_job)
@@ -119,13 +106,19 @@ def show_image():
 
     if display_type == "png":
         
-        fig = vis.get_fig()
+        if vis_img == None:
+            return
+
+        fig = vis_img.get_fig()
         canvas = FigureCanvasTkAgg(fig, master = right_frame)   
         canvas.draw() 
         canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER) 
 
     elif display_type == "gif":
         
+        if vis_gif == None:
+            return
+
         def update(idx):
             print(idx)
             if idx >= openImage.n_frames:
@@ -137,11 +130,11 @@ def show_image():
             global current_job
             current_job = window.after(int(gif_interval), update, idx + 1)
 
-        gifImage = vis.save_gif(filename="anim")
+        gifImage = vis_gif.save_gif(filename="anim")
         openImage = Image.open(gifImage)
         openImage.seek(0)
         gifDriver = ctk.CTkImage(light_image=openImage, size=(640, 480))
-        gif_Label = ctk.CTkLabel(right_frame, image=gifDriver)
+        gif_Label = ctk.CTkLabel(right_frame, image=gifDriver, text = "")
         gif_Label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
 
         update(1)
@@ -174,45 +167,113 @@ def generate():
   
 def apply_algorithm():
 
-    global vis
+    global vis_img
+    global vis_gif
+
+    vis_img = None
+    vis_gif = None
 
     selected_algorithm = algorithm_selection_combo_box.get()
 
     if selected_algorithm == "Wezlz":
+        
+        #----------img----------
 
-        vis = Visualizer()
-        vis.add_point(points)
-        circle = wezlz.welzl_algorithm_draw(copy.deepcopy(points), list([]), len(points), vis)
-        #show_wezlz(circle)
-        vis.add_circle((circle.S[0], circle.S[1], circle.r), color = 'green')
+        start = time.time()
+        welzl_points = wezlz.welzl_algorithm(copy.deepcopy(points), list([]), len(points))
+        stop = time.time()
+
+        #print("Welzl: ", stop - start)
+        algorithm_runtime_label.configure( text = str( round(stop - start, 5) ) )
+
+        vis_img = wezlz_vis_img(welzl_points)
+
+        #----------gif----------
+
+        vis_gif = Visualizer()
+        vis_gif.add_point(points)
+
+
+        circle = wezlz.welzl_algorithm_draw(copy.deepcopy(points), list([]), len(points), vis_gif)
+        vis_gif.add_circle((circle.S[0], circle.S[1], circle.r), color='green')
+
         show_image()
 
     elif selected_algorithm == "Graham":
 
-        hull_points, vis = graham.graham_algorithm_draw(copy.deepcopy(points))
+        #----------img----------
+
+        start = time.time()
+        hull_points = graham.graham_algorithm(copy.deepcopy(points))
+        stop = time.time()
+
+        #print("Graham: ", stop - start)
+        algorithm_runtime_label.configure( text = str(round(stop - start, 5)) )
+
+        vis_img = graham_vis_img(hull_points)
+
+        #----------gif----------
+
+        hull_points, vis_gif = graham.graham_algorithm_draw(copy.deepcopy(points))
+
         show_image()
-        #show_graham(hull_points)
 
     elif selected_algorithm == "MBR - Area":
+        
+        #----------img----------
 
-        mbr_area_points, vis = mbr.mbr_draw(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="area")
-        #show_mbr(mbr_area_points)
+        start = time.time()
+        mbr_area_points = mbr.mbr(copy.deepcopy(points), CalculationType="area")
+        stop = time.time()
+
+        #print("mbr area: ", stop - start)
+        algorithm_runtime_label.configure( text = str(round(stop - start, 5)) )
+
+        vis_img = mbr_vis_img(mbr_area_points)
+
+        #----------gif----------
+
+        mbr_area_points, vis_gif = mbr.mbr_draw(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="area")
+
         show_image()
 
     elif selected_algorithm == "MBR - Perimiter":
 
-        mbr_perimeter_points, vis = mbr.mbr_draw(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="perimiter")
-        #show_mbr(mbr_perimeter_points)
+        #----------img----------
+
+        start = time.time()
+        mbr_perimeter_points = mbr.mbr(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="perimiter")
+        stop = time.time()
+
+        #print("mbr perimeter: ", stop - start)
+        algorithm_runtime_label.configure( text = str(round(stop - start, 5)) )
+
+        vis_img = mbr_vis_img(mbr_perimeter_points)
+
+        #----------gif----------
+
+        mbr_perimeter_points, vis_gif = mbr.mbr_draw(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="perimiter")
+
         show_image()
 
     elif selected_algorithm == "Combo":
+
+        #----------img----------
 
         circle = wezlz.welzl_algorithm(copy.deepcopy(points), list([]), len(points))
         hull_points = graham.graham_algorithm(copy.deepcopy(points))
         mbr_area_points = mbr.mbr(copy.deepcopy(hull_points), CalculationType="area")
         mbr_perimeter_points = mbr.mbr(copy.deepcopy(hull_points), CalculationType="perimiter")
 
-        show_combo(circle, hull_points, mbr_area_points, mbr_perimeter_points)
+        vis_img = combo_vis_img(circle, hull_points, mbr_area_points, mbr_perimeter_points)
+
+        algorithm_runtime_label.configure( text = "-" )
+        
+        #----------gif----------
+
+        vis_gif = None
+
+        show_image()
 
     else:
         raise Exception("Incorrect argument!")
@@ -317,6 +378,12 @@ interval_selection_slider.place(x = 335, y = 30)
 interval_selection_tb = ctk.CTkLabel(master = right_frame, width = 40, height = 20, corner_radius=0, text  = "100", text_color = "white", font = ("Arial", 10))
 interval_selection_tb.place(x = 550, y = 30)
 
+#----------ALGORITHM RUNTIME----------
+
+algorithm_runtime_name_label = ctk.CTkLabel(master = right_frame, width = 100, height = 20, corner_radius = 0, text = "Algorithm runtime")
+algorithm_runtime_name_label.place(x = 20, y = 566)
+algorithm_runtime_label = ctk.CTkLabel(master = right_frame, width = 40, height = 20, corner_radius = 0, text = "-")
+algorithm_runtime_label.place(x = 150, y = 566)
 
 # run the gui 
 window.mainloop() 
