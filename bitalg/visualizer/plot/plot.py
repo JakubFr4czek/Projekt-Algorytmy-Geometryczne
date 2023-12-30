@@ -80,3 +80,4 @@ class Plot:
         anim = Plot.__build_gif(plot_data, data, interval)
         anim.save(filename=f'{filename}.gif', writer='pillow')
         plt.close()
+        return f'{filename}.gif'

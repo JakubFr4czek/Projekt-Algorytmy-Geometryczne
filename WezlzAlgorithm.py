@@ -92,3 +92,35 @@ def welzl_algorithm(P, R, last):
         R.append(point)
 
         return welzl_algorithm(P, R.copy(), last - 1)
+    
+def welzl_algorithm_draw(P, R, last, vis):
+
+    if last == 0 or len(R) == 3:
+        return construct_circle(R)
+    
+    #Wybieram losowo kolejny punkt
+    idx = rd.randint(0, last - 1)
+    point = P[idx]
+
+
+    #Zamieniam point z ostatnim elementem w P
+    P[idx], P[last-1] = P[last-1], P[idx]
+    
+    #Biorę okrąg zawierający wszystkie punkty poza point
+    circle = welzl_algorithm_draw(P, R.copy(), last - 1, vis)
+
+    temp_pt = vis.add_point(point, color = 'red')
+    temp = vis.add_circle((circle.S[0], circle.S[1], circle.r))
+    vis.remove_figure(temp)
+    vis.remove_figure(temp_pt)
+
+    #Sprawdzam, czy point zawiera się w circle
+    if(in_circle(circle, point)):
+        #Jeśli tak, to zwracam okrąg
+        return circle
+    else:
+        #Jeśli nie, to point należy do brzegu szukanego okręgu
+        R.append(point)
+        
+
+        return welzl_algorithm_draw(P, R.copy(), last - 1, vis)

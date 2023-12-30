@@ -67,7 +67,7 @@ class Visualizer:
         return gif
 
     def save_gif(self, filename='animation', interval=256):
-        Plot.save_gif(self.plot_data, self.data, interval, filename)
+        return Plot.save_gif(self.plot_data, self.data, interval, filename)
 
     def get_fig(self):
         return Plot.get_fig(self.plot_data, self.data)
