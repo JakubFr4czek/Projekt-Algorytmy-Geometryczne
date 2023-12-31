@@ -9,9 +9,9 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationTool
 
 #Importy z moich plikow
 import random_points_generator as rpg
-import WezlzAlgorithm as wezlz
-import GrahamAlgorithm as graham
-import MinimalBoundingRectangleAlgorithm as mbr
+import smallestcircle as wezlz
+import convexhull as graham
+import mbr as mbr
 from bitalg.visualizer.main import Visualizer
 
 
