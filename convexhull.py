@@ -3,209 +3,213 @@ import functools as ft
 from collections import deque
 from bitalg.visualizer.main import Visualizer
 
-def det(a, b, c):
-    return (a[0] - c[0]) * (b[1] - c[1]) - (b[0] - c[0]) * (a[1] - c[1])
+class Graham:
 
-def distance(P, A, B):
-    
-    #Wektor PA
-    PA = (A[0] - P[0], A[1] - P[1])
+    def __det(a, b, c):
+        return (a[0] - c[0]) * (b[1] - c[1]) - (b[0] - c[0]) * (a[1] - c[1])
 
-    #Moduł wektora PA
-    PA_mod = (PA[0] ** 2 + PA[1] ** 2)**(0.5)   
-
-    #Wektor PB
-    PB = (B[0] - P[0], B[1] - P[1])
-
-    #Moduł wektora PB
-    PB_mod = (PB[0] ** 2 + PB[1] ** 2)**(0.5)
-
-    if PA_mod > PB_mod:
-        return 1
-    else:
-        return -1
-
-def cmp(P, A, B, eps = 0):
-    
-    # -1 - B jest po lewej od PA
-    # 1 - B jest po prawej od PA
-    # 0 - B jest na PA
-
-    calculatedOrientation = orient(P, A, B)
-    
-    if calculatedOrientation != 0:
-        return calculatedOrientation
-    else:
-        return distance(P, A, B)
-
-def orient(P, A, B, eps = 0):
-    
-    # -1 - B jest po lewej od PA
-    # 1 - B jest po prawej od PA
-    # 0 - B jest na PA
-    
-    res = det(P, A, B)
-    
-    if res < -eps: #B leży po prawej stronie od PA
-        return 1
-    elif res > eps: #B leży po lewej stronie od PA
-        return -1
-    else:
-        return 0
-
-def graham_algorithm(X):
-
-    #Zbiór pusty
-    if len(X) == 0:
-        return []
-    
-    #Kopiuję tablicę, żeby nie zniszczyć oryginalnej, która potem jest używana do wyświetlania
-    Q = cp.deepcopy(X) 
-
-    #Punkt początkowy o najmiejszej współrzędnej y oraz x
-    P = min(Q, key = lambda l: (l[1],l[0])) 
-
-    #Pozbywam się P z listy
-    Q.remove(P) 
-    
-    #Sortuje zbiór punktów po najmniejszym kącie między prostą P - Punkt względem OX
-    Q = [P] + sorted(Q, key=ft.cmp_to_key(lambda A, B: cmp(P, A, B)))
-    
-    #Tworze stos
-    stack = deque()
-    
-    #Wrzucam 3 pierwsze punkty na stos (w tym P)
-    
-    if len(Q) > 0:
-        stack.append(Q[0])
-    else:
-        return list(stack)
+    def __distance(P, A, B):
         
-    if len(Q) > 1:
-        stack.append(Q[1])
-    else:
-        return list(stack)
-        
-    if len(Q) > 2:    
-        stack.append(Q[2])
-    else:
-        return list(stack)
-    
-    # Jeśli wsród 3 pierwszych punktów dwa są współliniowe to usuwam ten na szyczycie stosu (bo są posortowane rosnąco)
-    if orient(stack[-3], stack[-2], stack[-1]) == 0: 
-        stack.pop()
-        
-    
-    i = 3
-    
-    while i < len(Q):
-        A = stack[-2]
-        B = stack[-1]
-        C = Q[i]
+        #Wektor PA
+        PA = (A[0] - P[0], A[1] - P[1])
 
-        if orient(A, B, C) == 0: #B i C są współlinowe (Ale także posortowane rosnąco, więc usuwam ten pierwszy bo będzie mniejszy)
+        #Moduł wektora PA
+        PA_mod = (PA[0] ** 2 + PA[1] ** 2)**(0.5)   
 
-            stack.pop()
-            stack.append(Q[i])
-            i += 1
-        elif orient(A, B, C) == 1: 
-            
-            stack.pop()
+        #Wektor PB
+        PB = (B[0] - P[0], B[1] - P[1])
+
+        #Moduł wektora PB
+        PB_mod = (PB[0] ** 2 + PB[1] ** 2)**(0.5)
+
+        if PA_mod > PB_mod:
+            return 1
         else:
-            stack.append(Q[i])
-            i += 1
+            return -1
 
-    graham_points_a = list(stack)
-    
-    return graham_points_a
-
-def graham_algorithm_draw(X):
-
-    vis = Visualizer()
-    
-    vis.add_point(X) #Oryginalne punkty
-    
-    if len(X) == 0:
-        return []
-    
-    #Kopiuję tablicę, żeby nie zniszczyć oryginalnej, która potem jest używana do wyświetlania
-    Q = cp.deepcopy(X)
-
-    #Punkt początkowy o najmiejszej współrzędnej y oraz x
-    P = min(Q, key = lambda l: (l[1],l[0])) 
-
-    #Pozbywam się P z listy
-    Q.remove(P) 
-    
-    #Sortuje zbiór punktów po najmniejszym kącie między prostą P - Punkt względem OX
-    Q = [P] + sorted(Q, key=ft.cmp_to_key(lambda A, B: cmp(P, A, B)))
-    
-    #Tworze stos
-    stack = deque()
-    lineSegments = deque()
-    
-    #Wrzucam 3 pierwsze punkty na stos (w tym P)
-    
-    if len(Q) > 0:
-        stack.append(Q[0])
-    else:
-        return list(stack)
+    @classmethod
+    def __cmp(self, P, A, B, eps = 0):
         
-    if len(Q) > 1:
-        stack.append(Q[1])
-    else:
-        return list(stack)
-        
-    if len(Q) > 2:    
-        stack.append(Q[2])
-    else:
-        return list(stack)
+        # -1 - B jest po lewej od PA
+        # 1 - B jest po prawej od PA
+        # 0 - B jest na PA
 
-    lineSegments.append(vis.add_line_segment((stack[-3], stack[-2]), color = 'green'))
-    lineSegments.append(vis.add_line_segment((stack[-2], stack[-1]), color = 'green'))
-    
-    # Jeśli wsród 3 pierwszych punktów dwa są współliniowe to usuwam ten na szyczycie stosu (bo są posortowane rosnąco)
-    if orient(stack[-3], stack[-2], stack[-1]) == 0: 
-        vis.remove_figure(lineSegments[-1])
-        lineSegments.pop()
-        stack.pop()
+        calculatedOrientation = self.__orient(P, A, B)
         
-    
-    i = 3
-    
-    while i < len(Q):
-        A = stack[-2]
-        B = stack[-1]
-        C = Q[i]
+        if calculatedOrientation != 0:
+            return calculatedOrientation
+        else:
+            return self.__distance(P, A, B)
 
-        if orient(A, B, C) == 0: #B i C są współlinowe (Ale także posortowane rosnąco, więc usuwam ten pierwszy bo będzie mniejszy)
+    @classmethod
+    def __orient(self, P, A, B, eps = 0):
+        
+        # -1 - B jest po lewej od PA
+        # 1 - B jest po prawej od PA
+        # 0 - B jest na PA
+        
+        res = self.__det(P, A, B)
+        
+        if res < -eps: #B leży po prawej stronie od PA
+            return 1
+        elif res > eps: #B leży po lewej stronie od PA
+            return -1
+        else:
+            return 0
+
+    @classmethod
+    def graham_algorithm(self, X):
+
+        #Zbiór pusty
+        if len(X) == 0:
+            return []
+        
+        #Kopiuję tablicę, żeby nie zniszczyć oryginalnej, która potem jest używana do wyświetlania
+        Q = cp.deepcopy(X) 
+
+        #Punkt początkowy o najmiejszej współrzędnej y oraz x
+        P = min(Q, key = lambda l: (l[1],l[0])) 
+
+        #Pozbywam się P z listy
+        Q.remove(P) 
+        
+        #Sortuje zbiór punktów po najmniejszym kącie między prostą P - Punkt względem OX
+        Q = [P] + sorted(Q, key=ft.cmp_to_key(lambda A, B: self.__cmp(P, A, B)))
+        
+        #Tworze stos
+        stack = deque()
+        
+        #Wrzucam 3 pierwsze punkty na stos (w tym P)
+        
+        if len(Q) > 0:
+            stack.append(Q[0])
+        else:
+            return list(stack)
             
-            ads = vis.add_line_segment((stack[-1], C), color='red')
-            vis.remove_figure(ads)
+        if len(Q) > 1:
+            stack.append(Q[1])
+        else:
+            return list(stack)
             
+        if len(Q) > 2:    
+            stack.append(Q[2])
+        else:
+            return list(stack)
+        
+        # Jeśli wsród 3 pierwszych punktów dwa są współliniowe to usuwam ten na szyczycie stosu (bo są posortowane rosnąco)
+        if self.__orient(stack[-3], stack[-2], stack[-1]) == 0: 
+            stack.pop()
+            
+        
+        i = 3
+        
+        while i < len(Q):
+            A = stack[-2]
+            B = stack[-1]
+            C = Q[i]
+
+            if self.__orient(A, B, C) == 0: #B i C są współlinowe (Ale także posortowane rosnąco, więc usuwam ten pierwszy bo będzie mniejszy)
+
+                stack.pop()
+                stack.append(Q[i])
+                i += 1
+            elif self.__orient(A, B, C) == 1: 
+                
+                stack.pop()
+            else:
+                stack.append(Q[i])
+                i += 1
+
+        graham_points_a = list(stack)
+        
+        return graham_points_a
+
+    @classmethod
+    def graham_algorithm_draw(self, X):
+
+        vis = Visualizer()
+        
+        vis.add_point(X) #Oryginalne punkty
+        
+        if len(X) == 0:
+            return []
+        
+        #Kopiuję tablicę, żeby nie zniszczyć oryginalnej, która potem jest używana do wyświetlania
+        Q = cp.deepcopy(X)
+
+        #Punkt początkowy o najmiejszej współrzędnej y oraz x
+        P = min(Q, key = lambda l: (l[1],l[0])) 
+
+        #Pozbywam się P z listy
+        Q.remove(P) 
+        
+        #Sortuje zbiór punktów po najmniejszym kącie między prostą P - Punkt względem OX
+        Q = [P] + sorted(Q, key=ft.cmp_to_key(lambda A, B: self.__cmp(P, A, B)))
+        
+        #Tworze stos
+        stack = deque()
+        lineSegments = deque()
+        
+        #Wrzucam 3 pierwsze punkty na stos (w tym P)
+        
+        if len(Q) > 0:
+            stack.append(Q[0])
+        else:
+            return list(stack)
+            
+        if len(Q) > 1:
+            stack.append(Q[1])
+        else:
+            return list(stack)
+            
+        if len(Q) > 2:    
+            stack.append(Q[2])
+        else:
+            return list(stack)
+
+        lineSegments.append(vis.add_line_segment((stack[-3], stack[-2]), color = 'green'))
+        lineSegments.append(vis.add_line_segment((stack[-2], stack[-1]), color = 'green'))
+        
+        # Jeśli wsród 3 pierwszych punktów dwa są współliniowe to usuwam ten na szyczycie stosu (bo są posortowane rosnąco)
+        if self.__orient(stack[-3], stack[-2], stack[-1]) == 0: 
             vis.remove_figure(lineSegments[-1])
             lineSegments.pop()
             stack.pop()
-            stack.append(Q[i])
-            i += 1
-            lineSegments.append(vis.add_line_segment((stack[-2], stack[-1]), color = 'green'))
-        elif orient(A, B, C) == 1: 
-
-            ads = vis.add_line_segment((stack[-1], C), color='red')
-            vis.remove_figure(ads)
             
-            stack.pop()
-            vis.remove_figure(lineSegments[-1])
-            lineSegments.pop()
-        else:
-            stack.append(Q[i])
-            i += 1
-            lineSegments.append(vis.add_line_segment((stack[-2], stack[-1]), color = 'green'))
+        
+        i = 3
+        
+        while i < len(Q):
+            A = stack[-2]
+            B = stack[-1]
+            C = Q[i]
 
-    graham_points_a = list(stack)
+            if self.__orient(A, B, C) == 0: #B i C są współlinowe (Ale także posortowane rosnąco, więc usuwam ten pierwszy bo będzie mniejszy)
+                
+                ads = vis.add_line_segment((stack[-1], C), color='red')
+                vis.remove_figure(ads)
+                
+                vis.remove_figure(lineSegments[-1])
+                lineSegments.pop()
+                stack.pop()
+                stack.append(Q[i])
+                i += 1
+                lineSegments.append(vis.add_line_segment((stack[-2], stack[-1]), color = 'green'))
+            elif self.__orient(A, B, C) == 1: 
 
-    #for i in range(len(graham_points_a) - 1):
-    #    vis.add_line_segment( (graham_points_a[i], graham_points_a[i+1]) )
-    vis.add_line_segment([graham_points_a[-1], graham_points_a[0]])
-    
-    return graham_points_a, vis
+                ads = vis.add_line_segment((stack[-1], C), color='red')
+                vis.remove_figure(ads)
+                
+                stack.pop()
+                vis.remove_figure(lineSegments[-1])
+                lineSegments.pop()
+            else:
+                stack.append(Q[i])
+                i += 1
+                lineSegments.append(vis.add_line_segment((stack[-2], stack[-1]), color = 'green'))
+
+        graham_points_a = list(stack)
+
+        vis.add_line_segment([graham_points_a[-1], graham_points_a[0]], color = 'green')
+        
+        return graham_points_a, vis

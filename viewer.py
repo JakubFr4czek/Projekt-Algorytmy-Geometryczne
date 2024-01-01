@@ -5,13 +5,15 @@ import copy
 import time
 from matplotlib.figure import Figure 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk) 
+from PIL import Image
 
 
 #Importy z moich plikow
-import random_points_generator as rpg
-import smallestcircle as wezlz
-import convexhull as graham
-import mbr as mbr
+from random_points_generator import Random
+from smallestcircle import Welzl
+from convexhull import Graham
+from mbr import Mbr
+from geometry import Rectangle, PointSet
 from bitalg.visualizer.main import Visualizer
 
 
@@ -30,7 +32,9 @@ def show_points():
     vis = Visualizer()
     vis.add_point(points)
 
-    fig = vis.get_fig()
+    clearPlot()
+
+    fig, ax = vis.get_fig()
     canvas = FigureCanvasTkAgg(fig, master = right_frame)   
     canvas.draw() 
     canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
@@ -39,7 +43,7 @@ def wezlz_vis_img(circle):
 
     vis = Visualizer()
     vis.add_point(points)
-    vis.add_circle((circle.S[0], circle.S[1], circle.r), color='green')
+    vis.add_circle((circle.S[0], circle.S[1], circle.r), color='purple')
     
     return vis 
 
@@ -47,23 +51,16 @@ def graham_vis_img(hull_points):
 
     vis = Visualizer()
     vis.add_point(points)
-    for i in range(1, len(hull_points)):
-        vis.add_line_segment( (hull_points[i - 1], hull_points[i]) )
-    vis.add_line_segment( (hull_points[-1], hull_points[0]) )
+    vis.add_line_segment(PointSet.getEdges(hull_points), color = 'green')
 
     return vis
 
-def mbr_vis_img(mbr_points):
+def mbr_vis_img(mbr_rectangle):
 
     vis = Visualizer()
+
     vis.add_point(points)
-
-    ptsSegments = []
-    for i in range(1, len(mbr_points)):
-        ptsSegments.append( (mbr_points[i - 1], mbr_points[i]) )
-    ptsSegments.append( (mbr_points[-1], mbr_points[0]) )
-
-    vis.add_line_segment(ptsSegments,  color = 'red')
+    vis.add_line_segment(mbr_rectangle.getEdges(),  color = 'red')
 
     return vis
 
@@ -72,30 +69,17 @@ def combo_vis_img(circle, hull_points, mbr_area_points, mbr_perimeter_points):
     vis = Visualizer()
     vis.add_point(points)
 
-    vis.add_circle((circle.S[0], circle.S[1], circle.r), color='green')
+    vis.add_circle((circle.S[0], circle.S[1], circle.r), color='purple')
 
-    for i in range(1, len(hull_points)):
-        vis.add_line_segment( (hull_points[i - 1], hull_points[i]), color = 'purple' )
-    vis.add_line_segment( (hull_points[-1], hull_points[0]), color = 'purple' )
+    vis.add_line_segment(PointSet.getEdges(hull_points), color = 'green')
 
-    ptsSegmentsArea = []
-    for i in range(1, len(mbr_area_points)):
-        ptsSegmentsArea.append( (mbr_area_points[i - 1], mbr_area_points[i]) )
-    ptsSegmentsArea.append( (mbr_area_points[-1], mbr_area_points[0]) )
+    vis.add_line_segment(mbr_area_points.getEdges(), color = 'orange')
 
-    vis.add_line_segment(ptsSegmentsArea,  color = 'red')
-
-    ptsSegmentsPerimiter = []
-    for i in range(1, len(mbr_perimeter_points)):
-        ptsSegmentsPerimiter.append( (mbr_perimeter_points[i - 1], mbr_perimeter_points[i]) )
-    ptsSegmentsPerimiter.append( (mbr_perimeter_points[-1], mbr_perimeter_points[0]) )
-
-    vis.add_line_segment(ptsSegmentsPerimiter,  color = 'black')
+    vis.add_line_segment(mbr_perimeter_points.getEdges(), color = 'black')
 
     return vis
 
 
-from PIL import Image
 def show_image():
 
     global current_job
@@ -104,12 +88,17 @@ def show_image():
         window.after_cancel(current_job)
         current_job = None
 
+    clearPlot()
+
     if display_type == "png":
         
         if vis_img == None:
             return
 
-        fig = vis_img.get_fig()
+        fig, ax = vis_img.get_fig()
+        ax.set_xlim(-150, 150)
+        ax.set_ylim(-150, 150)
+
         canvas = FigureCanvasTkAgg(fig, master = right_frame)   
         canvas.draw() 
         canvas.get_tk_widget().place(relx=0.5, rely=0.5, anchor=ctk.CENTER) 
@@ -120,7 +109,7 @@ def show_image():
             return
 
         def update(idx):
-            print(idx)
+
             if idx >= openImage.n_frames:
                 idx = 0
 
@@ -139,6 +128,37 @@ def show_image():
 
         update(1)
         
+def clearPlot():
+    plt.clf()
+    plt.cla()
+    plt.close()
+
+def getFigure(n = 10, xLimit = (0, 100), yLimit = (0, 100)):
+
+    vertices = []
+    
+    def on_click(event):
+        
+        if event.inaxes:
+
+            plt.plot(event.xdata, event.ydata, 'o')
+
+            vertices.append((event.xdata, event.ydata))
+            plt.title(str(n - len(vertices)) +  ' points left') 
+            plt.show()
+
+            if(len(vertices) >= n):
+                plt.close()
+
+    clearPlot()
+
+    fig, ax = plt.subplots()
+
+    plt.setp(ax, xlim=xLimit, ylim=yLimit)
+    plt.connect('button_press_event', on_click)
+    plt.title(str(n) +  ' points left') 
+    plt.show()    
+    return vertices
 
 def generate():
 
@@ -149,16 +169,21 @@ def generate():
 
     if points_type == "random_uniform":
 
-        points = rpg.generate_uniform_points(n = number_of_points)
+        points = Random.generate_uniform_points(n = number_of_points)
         show_points()
 
     elif points_type == "random_circle":
-        points = rpg.generate_circle_points(n = number_of_points)
+        points = Random.generate_circle_points(n = number_of_points)
         show_points()
 
     elif points_type == "random_rectangle":
 
-        points = rpg.generate_rectangle_points(n = number_of_points)
+        points = Random.generate_rectangle_points(n = number_of_points)
+        show_points()
+
+    elif points_type == "custom":
+
+        points = getFigure(n = number_of_points)
         show_points()
 
     else: 
@@ -180,7 +205,7 @@ def apply_algorithm():
         #----------img----------
 
         start = time.time()
-        welzl_points = wezlz.welzl_algorithm(copy.deepcopy(points), list([]), len(points))
+        welzl_points = Welzl.welzl_algorithm(copy.deepcopy(points))
         stop = time.time()
 
         #print("Welzl: ", stop - start)
@@ -194,7 +219,7 @@ def apply_algorithm():
         vis_gif.add_point(points)
 
 
-        circle = wezlz.welzl_algorithm_draw(copy.deepcopy(points), list([]), len(points), vis_gif)
+        circle = Welzl.welzl_algorithm_draw(copy.deepcopy(points), vis_gif)
         vis_gif.add_circle((circle.S[0], circle.S[1], circle.r), color='green')
 
         show_image()
@@ -204,7 +229,7 @@ def apply_algorithm():
         #----------img----------
 
         start = time.time()
-        hull_points = graham.graham_algorithm(copy.deepcopy(points))
+        hull_points = Graham.graham_algorithm(copy.deepcopy(points))
         stop = time.time()
 
         #print("Graham: ", stop - start)
@@ -214,7 +239,7 @@ def apply_algorithm():
 
         #----------gif----------
 
-        hull_points, vis_gif = graham.graham_algorithm_draw(copy.deepcopy(points))
+        hull_points, vis_gif = Graham.graham_algorithm_draw(copy.deepcopy(points))
 
         show_image()
 
@@ -223,17 +248,16 @@ def apply_algorithm():
         #----------img----------
 
         start = time.time()
-        mbr_area_points = mbr.mbr(copy.deepcopy(points), CalculationType="area")
+        mbr_area_rectangle, area = Mbr.smallest_rectangle(copy.deepcopy(points), Mbr.compare_area)
         stop = time.time()
 
-        #print("mbr area: ", stop - start)
         algorithm_runtime_label.configure( text = str(round(stop - start, 5)) )
 
-        vis_img = mbr_vis_img(mbr_area_points)
+        vis_img = mbr_vis_img(mbr_area_rectangle)
 
         #----------gif----------
 
-        mbr_area_points, vis_gif = mbr.mbr_draw(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="area")
+        vis_gif = Mbr.smallest_rectangle_draw(copy.deepcopy(points), Mbr.compare_area)
 
         show_image()
 
@@ -242,17 +266,16 @@ def apply_algorithm():
         #----------img----------
 
         start = time.time()
-        mbr_perimeter_points = mbr.mbr(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="perimiter")
+        mbr_perimeter_rectangle, perimeter = Mbr.smallest_rectangle(copy.deepcopy(points), Mbr.compare_perimeter)
         stop = time.time()
 
-        #print("mbr perimeter: ", stop - start)
         algorithm_runtime_label.configure( text = str(round(stop - start, 5)) )
 
-        vis_img = mbr_vis_img(mbr_perimeter_points)
+        vis_img = mbr_vis_img(mbr_perimeter_rectangle)
 
         #----------gif----------
 
-        mbr_perimeter_points, vis_gif = mbr.mbr_draw(graham.graham_algorithm(copy.deepcopy(points)), CalculationType="perimiter")
+        vis_gif = Mbr.smallest_rectangle_draw(copy.deepcopy(points), Mbr.compare_perimeter)
 
         show_image()
 
@@ -260,10 +283,10 @@ def apply_algorithm():
 
         #----------img----------
 
-        circle = wezlz.welzl_algorithm(copy.deepcopy(points), list([]), len(points))
-        hull_points = graham.graham_algorithm(copy.deepcopy(points))
-        mbr_area_points = mbr.mbr(copy.deepcopy(hull_points), CalculationType="area")
-        mbr_perimeter_points = mbr.mbr(copy.deepcopy(hull_points), CalculationType="perimiter")
+        circle = Welzl.welzl_algorithm(copy.deepcopy(points))
+        hull_points = Graham.graham_algorithm(copy.deepcopy(points))
+        mbr_area_points, area = Mbr.smallest_rectangle(copy.deepcopy(points), Mbr.compare_area)
+        mbr_perimeter_points, perimeter = Mbr.smallest_rectangle(copy.deepcopy(points), Mbr.compare_perimeter)
 
         vis_img = combo_vis_img(circle, hull_points, mbr_area_points, mbr_perimeter_points)
 
@@ -310,7 +333,7 @@ left_frame.pack(side = ctk.LEFT)
 text_label = ctk.CTkLabel(master = left_frame, height = 20, width = 298, text = "Select a set of points", text_color = "white", font = ("Arial", 10))
 text_label.place(x = 1, y = 20)
 
-combo_values = ["random_uniform", "random_circle", "random_rectangle"]
+combo_values = ["random_uniform", "random_circle", "random_rectangle", "custom"]
 combo_box = ctk.CTkComboBox(master = left_frame, height = 20, width = 280, values = combo_values, corner_radius = 0, state = "readonly")
 combo_box.set("random_uniform")
 combo_box.place(x = 10, y = 50) 
@@ -322,7 +345,7 @@ NumOfPoints_label.place(x = 10, y = 80)
 NumOfPoints_tb = ctk.CTkLabel(master = left_frame, width = 40, height = 20, corner_radius=0, text  = "50", text_color = "white", font = ("Arial", 10))
 NumOfPoints_tb.place(x = 240, y = 100)
 
-NumOfPoints_sl = ctk.CTkSlider(master = left_frame, from_ = 0, to = 100, number_of_steps = 100, height = 20, width = 230, command = updateTextBox_NumOfPoints)
+NumOfPoints_sl = ctk.CTkSlider(master = left_frame, from_ = 0, to = 1_000, number_of_steps = 1_000, height = 20, width = 230, command = updateTextBox_NumOfPoints)
 NumOfPoints_sl.set(50)
 NumOfPoints_sl.place(x = 10, y = 100)
 
@@ -354,7 +377,7 @@ segemented_button = ctk.CTkSegmentedButton(master = right_frame, values=["png", 
 segemented_button.set("png")
 segemented_button.place(x = 250, y = 560)
 
-#----------Picture/Gif save------
+'''#----------Picture/Gif save------
 
 def save_file():
 
@@ -366,12 +389,14 @@ folder_selected = []
 image_save_button = ctk.CTkButton(master = right_frame,  command = save_file, height = 30,  width = 50, text = "Save", corner_radius = 0)
 image_save_button.place(x = 840, y = 10)
 
+'''
+
 #----------CHOOSE INTERVAL----------
 
 interval_selection_label = ctk.CTkLabel(master = right_frame, width = 280, height = 20, corner_radius = 0, text = "Select gif interval")
 interval_selection_label.place(x = 310, y = 10)
 
-interval_selection_slider = ctk.CTkSlider(master = right_frame, from_ = 0, to = 1000, number_of_steps = 1000, height = 20, width = 230, command = update_interval)
+interval_selection_slider = ctk.CTkSlider(master = right_frame, from_ = 1, to = 1000, number_of_steps = 1000, height = 20, width = 230, command = update_interval)
 interval_selection_slider.set(100)
 interval_selection_slider.place(x = 335, y = 30)
 

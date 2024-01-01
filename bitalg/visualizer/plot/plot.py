@@ -57,8 +57,8 @@ class Plot:
 
     @staticmethod
     def get_fig(plot_data, data):
-        fig, _ = Plot.__build_plot(plot_data, data)
-        return fig
+        fig, ax = Plot.__build_plot(plot_data, data)
+        return fig, ax
 
     @staticmethod
     def save(plot_data, data, filename):
