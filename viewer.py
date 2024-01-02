@@ -345,7 +345,7 @@ NumOfPoints_label.place(x = 10, y = 80)
 NumOfPoints_tb = ctk.CTkLabel(master = left_frame, width = 40, height = 20, corner_radius=0, text  = "50", text_color = "white", font = ("Arial", 10))
 NumOfPoints_tb.place(x = 240, y = 100)
 
-NumOfPoints_sl = ctk.CTkSlider(master = left_frame, from_ = 0, to = 1_000, number_of_steps = 1_000, height = 20, width = 230, command = updateTextBox_NumOfPoints)
+NumOfPoints_sl = ctk.CTkSlider(master = left_frame, from_ = 0, to = 1000, number_of_steps = 1000, height = 20, width = 230, command = updateTextBox_NumOfPoints)
 NumOfPoints_sl.set(50)
 NumOfPoints_sl.place(x = 10, y = 100)
 
